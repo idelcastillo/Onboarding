@@ -262,8 +262,10 @@
   .switch input:checked + .track + .knob { transform: translateX(16px); }
   .switch-label { font-size: 13.5px; font-weight: 500; }
 
-  .conyuge-fields { display: none; }
-  .conyuge-fields.open { display: grid; }
+  .conyuge-body { display: none; flex-direction: column; gap: 18px; }
+  .conyuge-body.open { display: flex; }
+  .doc-subgroup { display: flex; flex-direction: column; }
+  .doc-subgroup .group-sub { margin: 0 0 12px; }
 
   /* radio pills for SI/NO */
   .pill-radio { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
@@ -560,8 +562,17 @@
   ];
   var DOC_FIELD_SUJETO_OBLIGADO = { key: "doc_sujeto_obligado", label: "Constancia de inscripción como Sujeto Obligado" };
 
+  // Documentación del cónyuge — igual que la de identidad del titular pero
+  // sin comprobante de domicilio (el cónyuge no carga un domicilio propio
+  // en el formulario, comparte el del titular).
+  var DOC_FIELDS_CONYUGE = [
+    { key: "doc_conyuge_dni_frente", label: "DNI del cónyuge — frente" },
+    { key: "doc_conyuge_dni_dorso", label: "DNI del cónyuge — dorso" },
+    { key: "doc_conyuge_cuit_cuil", label: "Constancia de CUIT o CUIL del cónyuge" }
+  ];
+
   var DOC_FIELD_LABELS = {};
-  DOC_FIELDS_IDENTIDAD.concat(DOC_FIELDS_PATRIMONIO).concat([DOC_FIELD_SUJETO_OBLIGADO]).forEach(function (f) {
+  DOC_FIELDS_IDENTIDAD.concat(DOC_FIELDS_PATRIMONIO).concat([DOC_FIELD_SUJETO_OBLIGADO]).concat(DOC_FIELDS_CONYUGE).forEach(function (f) {
     DOC_FIELD_LABELS[f.key] = f.label;
   });
 
@@ -809,14 +820,30 @@
     switchRow.appendChild(swLabel);
     fs.appendChild(switchRow);
 
-    var grid = el("div", "field-grid conyuge-fields");
+    var body = el("div", "conyuge-body");
+
+    var grid = el("div", "field-grid");
     CONYUGE_FIELDS.forEach(function (f) { grid.appendChild(renderField(idx, f)); });
-    fs.appendChild(grid);
+    body.appendChild(grid);
+
+    var docWrap = el("div", "doc-subgroup");
+    docWrap.appendChild(el("div", "group-sub", "Documentación del cónyuge — opcional."));
+    var docGrid = el("div", "field-grid");
+    DOC_FIELDS_CONYUGE.forEach(function (f) { docGrid.appendChild(renderFileField(idx, f)); });
+    docWrap.appendChild(docGrid);
+    body.appendChild(docWrap);
+
+    fs.appendChild(body);
 
     cb.addEventListener("change", function () {
-      grid.classList.toggle("open", cb.checked);
+      body.classList.toggle("open", cb.checked);
       if (!cb.checked) {
-        grid.querySelectorAll("input, select").forEach(function (i) { i.value = ""; });
+        body.querySelectorAll('input[type="text"], input[type="email"], select').forEach(function (i) { i.value = ""; });
+        body.querySelectorAll('input[type="file"]').forEach(function (i) {
+          i.value = "";
+          var st = i.parentElement.querySelector(".file-status");
+          if (st) { st.textContent = ""; st.classList.remove("has-files"); }
+        });
       }
       updateStatus();
     });
