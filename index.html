@@ -227,6 +227,31 @@
 
   select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none'%3E%3Cpath d='M5.5 8L10 12.5L14.5 8' stroke='%235B6B7F' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; padding-right: 32px; }
 
+  /* ---------- Adjuntos de documentación ---------- */
+  .doc-group { background: var(--paper); }
+  .file-field input[type="file"] {
+    font: inherit;
+    font-size: 13px;
+    color: var(--muted);
+    width: 100%;
+  }
+  input[type="file"]::file-selector-button {
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--navy);
+    background: var(--surface);
+    border: 1.5px solid var(--line);
+    border-radius: 8px;
+    padding: 7px 14px;
+    margin-right: 10px;
+    cursor: pointer;
+    transition: border-color 0.12s ease, background 0.12s ease;
+  }
+  input[type="file"]::file-selector-button:hover { border-color: var(--navy); background: var(--navy-soft); }
+  .file-status { font-size: 12px; color: var(--success); margin-top: 2px; word-break: break-word; }
+  .file-status.has-files::before { content: "✓ "; }
+
   /* toggle switch for cónyuge */
   .switch-row { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
   .switch { position: relative; width: 38px; height: 22px; flex: none; }
@@ -401,14 +426,14 @@
   <summary>¿Cómo sigue esto después de completar los datos?</summary>
   <ol>
     <li>Al apretar "Enviar formulario" se muestra primero un resumen para revisar que esté todo bien.</li>
-    <li>Al confirmar, los datos se guardan solos — no hace falta descargar nada ni mandar ningún mail a mano.</li>
+    <li>Al confirmar, los datos y la documentación adjunta se guardan solos — no hace falta descargar nada ni mandar ningún mail a mano.</li>
     <li>Si por algún motivo no se pudieron guardar (por ejemplo, sin conexión a internet), en cambio se muestra abajo un bloque de texto para copiar y pegar en la hoja "Titulares" de <span class="mono">legajo_blackswan_template.xlsx</span>, celda A2.</li>
   </ol>
 </details>
 
 <details class="instructions" id="manual-copy-details" style="display:none;">
   <summary>No se pudo guardar automáticamente — copiá los datos manualmente</summary>
-  <p style="margin:0 0 8px;">Seleccioná todo el texto de abajo (hacé clic adentro y Ctrl+A, Ctrl+C) y pegalo en la hoja "Titulares", celda A2.</p>
+  <p style="margin:0 0 8px;">Seleccioná todo el texto de abajo (hacé clic adentro y Ctrl+A, Ctrl+C) y pegalo en la hoja "Titulares", celda A2. Este bloque de texto <strong>no incluye la documentación adjunta</strong> (DNI, comprobantes, etc.) — esos archivos hay que enviarlos por separado (por mail, por ejemplo).</p>
   <textarea id="manual-copy-area" class="mono" readonly style="width:100%; min-height:110px; font-size:11.5px; padding:10px; border:1px solid var(--line); border-radius:8px; background:var(--surface); color:var(--ink); white-space:pre;"></textarea>
   <p id="manual-copy-cuenta-label" style="margin:14px 0 8px; display:none;">Y esto en la hoja "Cuenta", celda A2.</p>
   <textarea id="manual-copy-cuenta-area" class="mono" readonly style="width:100%; min-height:80px; font-size:11.5px; padding:10px; border:1px solid var(--line); border-radius:8px; background:var(--surface); color:var(--ink); white-space:pre; display:none;"></textarea>
@@ -518,6 +543,30 @@
   ];
 
   function opts(list) { return list.map(function (o) { return { value: o, label: o }; }); }
+
+  // Documentación a adjuntar por titular (todas opcionales — se pueden
+  // completar después si el cliente no las tiene a mano en el momento).
+  // Formatos: foto o PDF. Límite por archivo y total definidos más abajo
+  // (DOC_MAX_FILE_MB / DOC_MAX_TOTAL_MB).
+  var DOC_FIELDS_IDENTIDAD = [
+    { key: "doc_dni_frente", label: "DNI — frente", help: "Foto o escaneo legible." },
+    { key: "doc_dni_dorso", label: "DNI — dorso", help: "Foto o escaneo legible." },
+    { key: "doc_comprobante_domicilio", label: "Comprobante de domicilio", help: "Solo si tu domicilio actual es distinto al que figura en el DNI (por ejemplo, una factura de servicio a tu nombre)." },
+    { key: "doc_cuit_cuil", label: "Constancia de CUIT o CUIL" }
+  ];
+  var DOC_FIELDS_PATRIMONIO = [
+    { key: "doc_cbu", label: "Constancia de CBU" },
+    { key: "doc_actividad", label: "Documentación respaldatoria de tu actividad", multiple: true, help: "Últimos recibos de sueldo, manifestación de bienes, o certificación de ingresos certificada por contador — subí una o más." }
+  ];
+  var DOC_FIELD_SUJETO_OBLIGADO = { key: "doc_sujeto_obligado", label: "Constancia de inscripción como Sujeto Obligado" };
+
+  var DOC_FIELD_LABELS = {};
+  DOC_FIELDS_IDENTIDAD.concat(DOC_FIELDS_PATRIMONIO).concat([DOC_FIELD_SUJETO_OBLIGADO]).forEach(function (f) {
+    DOC_FIELD_LABELS[f.key] = f.label;
+  });
+
+  var DOC_MAX_FILE_MB = 10;
+  var DOC_MAX_TOTAL_MB = 35;
 
   // Definición de campos por sección. type: text|email|select|textarea
   var SECTIONS = [
@@ -685,6 +734,54 @@
     return wrap;
   }
 
+  // Campo de adjuntar archivo (documentación). Nunca se marca "required":
+  // toda la documentación es opcional en el formulario — el cliente puede
+  // completarla después si no la tiene a mano en el momento.
+  function renderFileField(idx, f) {
+    var wrap = el("div", "field file-field" + (f.span === 2 ? " span-2" : ""));
+    var id = fieldId(idx, f.key);
+    var labelEl = el("label", null);
+    labelEl.setAttribute("for", id);
+    labelEl.innerHTML = f.label + '<span class="opt">(opcional)</span>';
+    wrap.appendChild(labelEl);
+
+    var input = el("input");
+    input.type = "file";
+    input.id = id;
+    input.name = id;
+    input.accept = "image/*,.pdf,application/pdf";
+    if (f.multiple) input.multiple = true;
+    input.dataset.docKey = f.key;
+    wrap.appendChild(input);
+
+    if (f.help) wrap.appendChild(el("div", "field-help", f.help));
+
+    var status = el("div", "file-status");
+    wrap.appendChild(status);
+    input.addEventListener("change", function () {
+      if (!input.files || !input.files.length) {
+        status.textContent = "";
+        status.classList.remove("has-files");
+        return;
+      }
+      var names = Array.prototype.map.call(input.files, function (file) { return file.name; });
+      status.textContent = names.join(", ");
+      status.classList.add("has-files");
+    });
+
+    return wrap;
+  }
+
+  function renderDocSection(idx, title, sub, fields) {
+    var fs = el("fieldset", "group doc-group");
+    fs.appendChild(el("legend", null, title));
+    if (sub) fs.appendChild(el("div", "group-sub", sub));
+    var grid = el("div", "field-grid");
+    fields.forEach(function (f) { grid.appendChild(renderFileField(idx, f)); });
+    fs.appendChild(grid);
+    return fs;
+  }
+
   function renderSection(idx, section, gridCols) {
     var fs = el("fieldset", "group");
     fs.appendChild(el("legend", null, section.title));
@@ -744,11 +841,13 @@
     var panel = el("div", "conditional-panel");
     var pgrid = el("div", "field-grid");
     pgrid.appendChild(renderField(idx, { key: "Categoría de Sujeto Obligado (si SI)", label: "Categoría de Sujeto Obligado", required: false, span: 2 }));
+    pgrid.appendChild(renderFileField(idx, DOC_FIELD_SUJETO_OBLIGADO));
     panel.appendChild(pgrid);
     fs.appendChild(panel);
 
     pill.onChange(function (val) {
       var catInput = panel.querySelector('[data-key="Categoría de Sujeto Obligado (si SI)"]');
+      var fileInput = panel.querySelector('[data-doc-key="' + DOC_FIELD_SUJETO_OBLIGADO.key + '"]');
       if (val === "SI") {
         panel.classList.add("open");
         catInput.dataset.required = "1";
@@ -756,6 +855,11 @@
         panel.classList.remove("open");
         catInput.value = "";
         delete catInput.dataset.required;
+        if (fileInput) {
+          fileInput.value = "";
+          var st = fileInput.parentElement.querySelector(".file-status");
+          if (st) { st.textContent = ""; st.classList.remove("has-files"); }
+        }
       }
       updateStatus();
     });
@@ -926,6 +1030,21 @@
 
     SECTIONS.forEach(function (section) {
       card.appendChild(renderSection(idx, section));
+      if (section.title === "Domicilio y contacto") {
+        card.appendChild(renderDocSection(
+          idx,
+          "Documentación — identidad y domicilio",
+          "Subí lo que tengas a mano ahora; lo que te falte lo podés enviar después.",
+          DOC_FIELDS_IDENTIDAD
+        ));
+      } else if (section.title === "Datos patrimoniales") {
+        card.appendChild(renderDocSection(
+          idx,
+          "Documentación — patrimonio y actividad",
+          null,
+          DOC_FIELDS_PATRIMONIO
+        ));
+      }
     });
     card.appendChild(renderConyugeSection(idx));
     card.appendChild(renderSujetoObligadoSection(idx));
@@ -1187,29 +1306,116 @@
     showToast("Abriendo tu app de mail…");
   }
 
-  // --- Guardado automático en Google Sheets (una Sheet nueva por envío). ---
+  // Lee un archivo como base64 (sin el prefijo "data:...;base64,").
+  function fileToBase64(file) {
+    return new Promise(function (resolve, reject) {
+      var reader = new FileReader();
+      reader.onload = function () {
+        var result = reader.result || "";
+        var comma = String(result).indexOf(",");
+        resolve({
+          name: file.name,
+          mime: file.type || "application/octet-stream",
+          size: file.size,
+          data: comma >= 0 ? result.slice(comma + 1) : result
+        });
+      };
+      reader.onerror = function () { reject(reader.error || new Error("No se pudo leer el archivo")); };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  // Junta toda la documentación adjunta, agrupada por titular, y la
+  // codifica en base64 para mandarla junto con el resto del payload.
+  // Valida tamaños ANTES de codificar (evita quemar tiempo/memoria de más
+  // si ya sabemos que no va a entrar).
+  async function buildDocumentosPayload() {
+    var cards = Array.prototype.slice.call(container.querySelectorAll(".titular-card"));
+    var documentos = [];
+    var totalBytes = 0;
+    var maxFileBytes = DOC_MAX_FILE_MB * 1024 * 1024;
+    var maxTotalBytes = DOC_MAX_TOTAL_MB * 1024 * 1024;
+
+    for (var i = 0; i < cards.length; i++) {
+      var card = cards[i];
+      var fileInputs = Array.prototype.slice.call(card.querySelectorAll('input[type="file"][data-doc-key]'));
+      var titularFiles = [];
+      for (var j = 0; j < fileInputs.length; j++) {
+        var input = fileInputs[j];
+        if (!input.files || !input.files.length) continue;
+        var docKey = input.dataset.docKey;
+        for (var k = 0; k < input.files.length; k++) {
+          var file = input.files[k];
+          if (file.size > maxFileBytes) {
+            return { tooLarge: true, reason: "file", detail: file.name };
+          }
+          totalBytes += file.size;
+          if (totalBytes > maxTotalBytes) {
+            return { tooLarge: true, reason: "total", detail: null };
+          }
+          var encoded = await fileToBase64(file);
+          titularFiles.push({
+            docKey: docKey,
+            docLabel: DOC_FIELD_LABELS[docKey] || docKey,
+            name: encoded.name,
+            mime: encoded.mime,
+            size: encoded.size,
+            data: encoded.data
+          });
+        }
+      }
+      if (titularFiles.length) {
+        documentos.push({
+          titularIndex: i + 1,
+          titularNombre: [getCardValue(card, "Apellido"), getCardValue(card, "Nombres")].filter(Boolean).join(", "),
+          files: titularFiles
+        });
+      }
+    }
+    return { tooLarge: false, documentos: documentos, totalBytes: totalBytes };
+  }
+
+  // --- Guardado automático en Google Sheets/Drive (una carpeta nueva por envío). ---
   // Es la única forma de envío del formulario: si falla, submitForm() cae
-  // al respaldo de copiar y pegar a mano en vez de perder los datos.
-  function buildSheetsPayload() {
+  // al respaldo de copiar y pegar a mano en vez de perder los datos (los
+  // archivos adjuntos no forman parte de ese respaldo — hay que reenviarlos
+  // por separado si el guardado automático falla).
+  async function buildSheetsPayload() {
     var firstCard = container.querySelector(".titular-card");
     var ap = firstCard ? getCardValue(firstCard, "Apellido") : "";
     var no = firstCard ? getCardValue(firstCard, "Nombres") : "";
     var nombrePrincipal = [ap, no].filter(Boolean).join(", ") || "Sin nombre";
-    return { rows: collectRows(), nombrePrincipal: nombrePrincipal, cuenta: buildCuentaPayload() };
+    var docResult = await buildDocumentosPayload();
+    if (docResult.tooLarge) {
+      return { error: docResult.reason === "file" ? "file_too_large" : "total_too_large", detail: docResult.detail };
+    }
+    return {
+      rows: collectRows(),
+      nombrePrincipal: nombrePrincipal,
+      cuenta: buildCuentaPayload(),
+      documentos: docResult.documentos
+    };
   }
 
   async function saveToSheets() {
-    if (inClaudeViewer || !SHEETS_WEBAPP_URL) return false;
+    if (inClaudeViewer || !SHEETS_WEBAPP_URL) return { ok: false, reason: "unavailable" };
+    var payload;
+    try {
+      payload = await buildSheetsPayload();
+    } catch (err) {
+      return { ok: false, reason: "read_files" };
+    }
+    if (payload.error) return { ok: false, reason: payload.error, detail: payload.detail };
     try {
       var res = await fetch(SHEETS_WEBAPP_URL, {
         method: "POST",
         headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body: JSON.stringify(buildSheetsPayload())
+        body: JSON.stringify(payload)
       });
       var data = await res.json();
-      return !!(data && data.ok);
+      return (data && data.ok) ? { ok: true } : { ok: false, reason: "server" };
     } catch (err) {
-      return false;
+      return { ok: false, reason: "network" };
     }
   }
 
@@ -1219,17 +1425,25 @@
     confirmBtn.disabled = true;
     backBtn.disabled = true;
     confirmBtn.textContent = "Enviando…";
-    var ok = await saveToSheets();
+    var result = await saveToSheets();
     confirmBtn.disabled = false;
     backBtn.disabled = false;
     confirmBtn.textContent = "Enviar";
-    if (ok) {
+    if (result.ok) {
       showSentState();
-    } else {
-      closeReviewModal();
-      fillManualCopyArea();
-      showManualCopyFallback("No se pudo enviar automáticamente — copiá el bloque de abajo y pegalo en un mail o en la planilla");
+      return;
     }
+    closeReviewModal();
+    fillManualCopyArea();
+    var msg;
+    if (result.reason === "file_too_large") {
+      msg = 'El archivo "' + (result.detail || "") + '" pesa más de ' + DOC_MAX_FILE_MB + ' MB y no se pudo enviar. Los datos de texto quedaron listos para copiar abajo — ese archivo hay que mandarlo por separado.';
+    } else if (result.reason === "total_too_large") {
+      msg = 'La documentación adjunta pesa más de ' + DOC_MAX_TOTAL_MB + ' MB en total y no se pudo enviar. Los datos de texto quedaron listos para copiar abajo — los archivos hay que mandarlos por separado.';
+    } else {
+      msg = "No se pudo enviar automáticamente — copiá el bloque de abajo y pegalo en un mail o en la planilla. Si habías adjuntado documentación, mandala por separado.";
+    }
+    showManualCopyFallback(msg);
   }
 
   function showSentState() {
@@ -1299,6 +1513,26 @@
         g.appendChild(dl);
         block.appendChild(g);
       });
+
+      var fileInputs = Array.prototype.slice.call(card.querySelectorAll('input[type="file"][data-doc-key]'));
+      var docRows = fileInputs.map(function (input) {
+        if (!input.files || !input.files.length) return null;
+        var names = Array.prototype.map.call(input.files, function (file) { return file.name; }).join(", ");
+        return { label: DOC_FIELD_LABELS[input.dataset.docKey] || input.dataset.docKey, value: names };
+      }).filter(Boolean);
+      if (docRows.length) {
+        any = true;
+        var dg = el("div", "review-group");
+        dg.appendChild(el("div", "review-group-title", "Documentación adjunta"));
+        var ddl = el("dl", "review-list");
+        docRows.forEach(function (r) {
+          ddl.appendChild(el("dt", null, r.label));
+          ddl.appendChild(el("dd", null, r.value));
+        });
+        dg.appendChild(ddl);
+        block.appendChild(dg);
+      }
+
       if (!any) block.appendChild(el("div", "review-empty", "Sin datos cargados todavía."));
       reviewContent.appendChild(block);
     });
