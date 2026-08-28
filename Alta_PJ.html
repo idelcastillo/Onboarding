@@ -6,7 +6,6 @@
 <title>Alta de Legajo — Persona Jurídica</title>
 </head>
 <body>
-
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
 
@@ -619,9 +618,16 @@
   ];
   var DOC_FIELD_SUJETO_OBLIGADO = { key: "doc_sujeto_obligado", label: "Constancia de inscripción como Sujeto Obligado" };
   var DOC_FIELD_PODER = { key: "doc_poder", label: "Poder", help: "Si actúa como apoderado de la sociedad." };
+  var DOC_FIELD_AUTORIZACION = { key: "doc_autorizacion", label: "Autorización", help: "Carta o nota de autorización para actuar en representación de la sociedad, si aplica (además o en lugar del poder)." };
+  // DNI/Pasaporte — se usan tanto para Beneficiarios Finales como para
+  // Representantes/Apoderados (misma clave y etiqueta en los dos casos).
+  var DOC_FIELD_DNI_FRENTE = { key: "doc_dni_frente", label: "DNI/Pasaporte — Frente" };
+  var DOC_FIELD_DNI_DORSO = { key: "doc_dni_dorso", label: "DNI/Pasaporte — Dorso" };
 
   var DOC_FIELD_LABELS = {};
-  SOCIEDAD_DOC_FIELDS.concat([DOC_FIELD_SUJETO_OBLIGADO, DOC_FIELD_PODER]).forEach(function (f) {
+  SOCIEDAD_DOC_FIELDS.concat([
+    DOC_FIELD_SUJETO_OBLIGADO, DOC_FIELD_PODER, DOC_FIELD_AUTORIZACION, DOC_FIELD_DNI_FRENTE, DOC_FIELD_DNI_DORSO
+  ]).forEach(function (f) {
     DOC_FIELD_LABELS[f.key] = f.label;
   });
 
@@ -1032,6 +1038,13 @@
 
     BENEFICIARIO_SECTIONS.forEach(function (section) { card.appendChild(renderSection(idx, section)); });
 
+    card.appendChild(renderDocSection(
+      idx,
+      "Documentación del beneficiario",
+      "Opcional — DNI o pasaporte de esta persona.",
+      [DOC_FIELD_DNI_FRENTE, DOC_FIELD_DNI_DORSO]
+    ));
+
     // PEP
     var fs = el("fieldset", "group");
     fs.appendChild(el("legend", null, "Persona Expuesta Políticamente (PEP)"));
@@ -1128,6 +1141,48 @@
     return fs;
   }
 
+  // DNI/Pasaporte del representante. Si la misma persona ya fue cargada como
+  // Beneficiario Final (y ya subió ahí su DNI), se puede tildar el check y
+  // no se le vuelve a pedir el archivo acá.
+  function renderRepresentanteDniSection(idx) {
+    var fs = el("fieldset", "group");
+    fs.appendChild(el("legend", null, "Documentación personal — DNI/Pasaporte"));
+
+    var switchRow = el("div", "switch-row");
+    var sw = el("label", "switch");
+    var cb = el("input");
+    cb.type = "checkbox";
+    cb.id = "t" + idx + "__misma_persona_beneficiario";
+    sw.appendChild(cb);
+    sw.appendChild(el("span", "track"));
+    sw.appendChild(el("span", "knob"));
+    switchRow.appendChild(sw);
+    var swLabel = el("label", "switch-label", "Es la misma persona que un Beneficiario Final ya cargado (no hace falta subir el DNI de nuevo)");
+    swLabel.setAttribute("for", cb.id);
+    switchRow.appendChild(swLabel);
+    fs.appendChild(switchRow);
+
+    var body = el("div", "conyuge-body open");
+    var grid = el("div", "field-grid");
+    grid.appendChild(renderFileField(idx, DOC_FIELD_DNI_FRENTE));
+    grid.appendChild(renderFileField(idx, DOC_FIELD_DNI_DORSO));
+    body.appendChild(grid);
+    fs.appendChild(body);
+
+    cb.addEventListener("change", function () {
+      body.classList.toggle("open", !cb.checked);
+      if (cb.checked) {
+        body.querySelectorAll('input[type="file"]').forEach(function (inp) {
+          inp.value = "";
+          var st = inp.parentElement.querySelector(".file-status");
+          if (st) { st.textContent = ""; st.classList.remove("has-files"); }
+        });
+      }
+      updateStatus();
+    });
+    return fs;
+  }
+
   function renderSujetoObligadoSection(idx) {
     var fs = el("fieldset", "group");
     fs.appendChild(el("legend", null, "Carácter y sujeto obligado — Ley 25.246"));
@@ -1138,6 +1193,7 @@
 
     var docGrid = el("div", "field-grid");
     docGrid.appendChild(renderFileField(idx, DOC_FIELD_PODER));
+    docGrid.appendChild(renderFileField(idx, DOC_FIELD_AUTORIZACION));
     fs.appendChild(docGrid);
 
     var radioWrap = el("div", "field");
@@ -1268,6 +1324,7 @@
 
     REPRESENTANTE_SECTIONS.forEach(function (section) { card.appendChild(renderSection(idx, section)); });
     card.appendChild(renderConyugeSection(idx));
+    card.appendChild(renderRepresentanteDniSection(idx));
     card.appendChild(renderSujetoObligadoSection(idx));
     card.appendChild(renderPepSection(idx));
 
@@ -1408,6 +1465,22 @@
     var socResult = await encodeInputs(socInputs);
     if (socResult.tooLarge) return socResult;
 
+    var documentosBeneficiarios = [];
+    var benCards = Array.prototype.slice.call(container.querySelectorAll(".beneficiario-card"));
+    for (var b = 0; b < benCards.length; b++) {
+      var bcard = benCards[b];
+      var bFileInputs = Array.prototype.slice.call(bcard.querySelectorAll('input[type="file"][data-doc-key]'));
+      var bResult = await encodeInputs(bFileInputs);
+      if (bResult.tooLarge) return bResult;
+      if (bResult.files.length) {
+        documentosBeneficiarios.push({
+          beneficiarioIndex: b + 1,
+          beneficiarioNombre: getCardValue(bcard, "Nombre y Apellido"),
+          files: bResult.files
+        });
+      }
+    }
+
     var documentosRepresentantes = [];
     var repCards = Array.prototype.slice.call(container.querySelectorAll(".representante-card"));
     for (var i = 0; i < repCards.length; i++) {
@@ -1424,7 +1497,13 @@
       }
     }
 
-    return { tooLarge: false, documentosSociedad: socResult.files, documentosRepresentantes: documentosRepresentantes, totalBytes: totalBytes };
+    return {
+      tooLarge: false,
+      documentosSociedad: socResult.files,
+      documentosBeneficiarios: documentosBeneficiarios,
+      documentosRepresentantes: documentosRepresentantes,
+      totalBytes: totalBytes
+    };
   }
 
   // ------------------------------------------------------------------
@@ -1443,6 +1522,7 @@
       representantes: collectRepresentanteRows(),
       nombrePrincipal: getSociedadValue("Razón Social") || "Sin nombre",
       documentosSociedad: docResult.documentosSociedad,
+      documentosBeneficiarios: docResult.documentosBeneficiarios,
       documentosRepresentantes: docResult.documentosRepresentantes
     };
   }
