@@ -1503,7 +1503,6 @@
     reviewContent.appendChild(wrap);
 
     if (PERFIL_RIESGO_URL && result && result.ssId) {
-      var cantidadTitulares = container.querySelectorAll(".titular-card").length;
       var cta = el("div", "next-step-cta");
       var ctaTitle = nombreCompleto
         ? ("¿Completamos también el Test de Perfil de Inversor de " + nombreCompleto + "?")
@@ -1519,9 +1518,7 @@
       link.target = "_blank";
       link.rel = "noopener";
       cta.appendChild(link);
-      if (cantidadTitulares > 1) {
-        cta.appendChild(el("div", "next-step-note", "Este test es individual — es solo para " + (nombreCompleto || "el primer titular") + ". Si hay otro titular en la cuenta, tiene que completar el suyo por separado con el link independiente que te compartió tu asesor."));
-      }
+      cta.appendChild(el("div", "next-step-note", "Este test es individual — es solo para " + (nombreCompleto || "el primer titular") + ". Si hay otro titular en la cuenta, tiene que completar el suyo por separado con el link independiente que te compartió tu asesor."));
       reviewContent.appendChild(cta);
     }
 
