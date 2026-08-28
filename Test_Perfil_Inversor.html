@@ -139,6 +139,8 @@
   label .req { color: var(--danger); margin-left: 2px; }
   label .opt { color: var(--faint); font-weight: 400; margin-left: 4px; }
 
+  .field-help { font-size: 12px; color: var(--muted); margin-top: -2px; }
+
   input[type="text"], input[type="email"] {
     font: inherit; font-size: 14px; color: var(--ink); background: var(--surface);
     border: 1px solid var(--line); border-radius: 8px; padding: 9px 11px; width: 100%;
@@ -146,6 +148,7 @@
   }
   input:focus { outline: none; border-color: var(--focus); box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus) 22%, transparent); }
   input.invalid { border-color: var(--danger); }
+  input.prefilled { background: var(--line-soft); color: var(--muted); cursor: default; }
 
   .opciones { display: flex; flex-direction: column; gap: 10px; }
   .opcion {
@@ -198,6 +201,23 @@
   .risk-badge.moderado { color: var(--warn); background: var(--warn-soft); }
   .risk-badge.agresivo { color: var(--danger); background: var(--danger-soft); }
 
+  .risk-gauge { width: 100%; max-width: 420px; margin: 6px auto 2px; }
+  .risk-gauge-outer { position: relative; padding-top: 6px; }
+  .risk-gauge-track { display: flex; height: 10px; border-radius: 999px; overflow: hidden; }
+  .risk-gauge-seg { flex: 1; }
+  .risk-gauge-seg.conservador { background: var(--success); }
+  .risk-gauge-seg.moderado { background: var(--warn); }
+  .risk-gauge-seg.agresivo { background: var(--danger); }
+  .risk-gauge-marker {
+    position: absolute; top: 1px; width: 18px; height: 18px; margin-left: -9px;
+    background: var(--surface); border: 3px solid var(--ink); border-radius: 50%;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+  }
+  .risk-gauge-labels {
+    display: flex; justify-content: space-between; font-size: 11px; color: var(--muted);
+    margin-top: 8px; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600;
+  }
+
   .instructions {
     max-width: 720px; margin: 0 auto 8px; padding: 0 24px;
     color: var(--muted); font-size: 13px; line-height: 1.6;
@@ -235,6 +255,7 @@
   <div class="card">
     <fieldset class="group identidad-group">
       <legend>Tus datos</legend>
+      <div class="field-help" id="identidad-note" style="display:none; margin-bottom:12px;">Ya tenemos tu nombre y tu email de tu alta de titulares — no hace falta que los vuelvas a escribir.</div>
       <div class="field-grid">
         <div class="field span-2">
           <label for="f-nombre">Nombre y apellido<span class="req">*</span></label>
@@ -364,10 +385,12 @@
     return "Agresivo";
   }
   var PERFIL_DESC = {
-    "Conservador": "Priorizás preservar el capital y estás dispuesto a aceptar rendimientos más bajos a cambio de menor volatilidad.",
-    "Moderado": "Buscás un equilibrio entre crecimiento y estabilidad, aceptando cierta volatilidad a cambio de mejores retornos.",
-    "Agresivo": "Priorizás el crecimiento del capital a largo plazo y estás dispuesto a aceptar alta volatilidad y posibles pérdidas significativas."
+    "Conservador": "Tu perfil prioriza la preservación del capital por sobre el crecimiento. Preferís evitar la volatilidad, aunque eso signifique resignar parte del retorno potencial, y te sentirías incómodo con caídas importantes en el valor de tus inversiones.",
+    "Moderado": "Tu perfil busca un equilibrio entre crecimiento y estabilidad. Estás dispuesto a asumir cierta volatilidad a cambio de mejores retornos que los de instrumentos más conservadores, sin buscar el extremo de mayor riesgo.",
+    "Agresivo": "Tu perfil prioriza el crecimiento del capital en el largo plazo. Estás dispuesto a tolerar alta volatilidad y eventuales pérdidas significativas en el camino, a cambio de un mayor potencial de retorno."
   };
+  var SCORE_MIN = 6;
+  var SCORE_MAX = 23;
 
   function el(tag, cls, html) {
     var e = document.createElement(tag);
@@ -430,8 +453,21 @@
   // ese legajo para que la respuesta quede vinculada a la misma planilla.
   var params = new URLSearchParams(window.location.search);
   var prefillSsId = params.get("ssId") || "";
-  if (params.get("nombre")) nombreInput.value = params.get("nombre");
-  if (params.get("email")) emailInput.value = params.get("email");
+  var prefillNombre = params.get("nombre") || "";
+  var prefillEmail = params.get("email") || "";
+  if (prefillNombre || prefillEmail) {
+    document.getElementById("identidad-note").style.display = "";
+  }
+  if (prefillNombre) {
+    nombreInput.value = prefillNombre;
+    nombreInput.readOnly = true;
+    nombreInput.classList.add("prefilled");
+  }
+  if (prefillEmail) {
+    emailInput.value = prefillEmail;
+    emailInput.readOnly = true;
+    emailInput.classList.add("prefilled");
+  }
 
   function getMissingCount() {
     var missing = 0;
@@ -537,7 +573,7 @@
     }
   }
 
-  function showResult(perfil) {
+  function showResult(perfil, score) {
     document.getElementById("main-content").style.display = "none";
     document.getElementById("action-bar").style.display = "none";
     var wrap = el("div", "sent-state");
@@ -547,6 +583,26 @@
     wrap.appendChild(el("div", "sent-text", "Gracias — ya recibimos tus respuestas."));
     var badge = el("div", "risk-badge " + perfil.toLowerCase(), perfil);
     wrap.appendChild(badge);
+
+    var pct = Math.max(0, Math.min(100, ((score - SCORE_MIN) / (SCORE_MAX - SCORE_MIN)) * 100));
+    var gauge = el("div", "risk-gauge");
+    var outer = el("div", "risk-gauge-outer");
+    var track = el("div", "risk-gauge-track");
+    track.appendChild(el("span", "risk-gauge-seg conservador"));
+    track.appendChild(el("span", "risk-gauge-seg moderado"));
+    track.appendChild(el("span", "risk-gauge-seg agresivo"));
+    outer.appendChild(track);
+    var marker = el("div", "risk-gauge-marker");
+    marker.style.left = pct + "%";
+    outer.appendChild(marker);
+    gauge.appendChild(outer);
+    var labels = el("div", "risk-gauge-labels");
+    labels.appendChild(el("span", null, "Conservador"));
+    labels.appendChild(el("span", null, "Moderado"));
+    labels.appendChild(el("span", null, "Agresivo"));
+    gauge.appendChild(labels);
+    wrap.appendChild(gauge);
+
     wrap.appendChild(el("div", "sent-text", PERFIL_DESC[perfil] || ""));
     var card = el("div", "card");
     card.style.maxWidth = "560px";
@@ -572,7 +628,7 @@
     btn.disabled = false;
     btn.innerHTML = '<svg viewBox="0 0 20 20" fill="none"><path d="M10 3v10m0 0l-4-4m4 4l4-4M4 15.5h12" stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg> Enviar';
     if (result.ok) {
-      showResult(payload.perfil);
+      showResult(payload.perfil, payload.score);
       return;
     }
     fillManualCopyArea(payload);
