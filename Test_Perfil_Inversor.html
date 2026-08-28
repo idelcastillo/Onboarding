@@ -1,11 +1,4 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Test de Perfil de Inversor</title>
-</head>
-<body>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
 
@@ -276,12 +269,6 @@
   <div id="preguntas-container" style="display:flex; flex-direction:column; gap:20px;"></div>
 </main>
 
-<details class="instructions" id="manual-copy-details" style="display:none;">
-  <summary>No se pudo guardar automáticamente — copiá los datos manualmente</summary>
-  <p style="margin:0 0 8px;">Seleccioná todo el texto de abajo (Ctrl+A, Ctrl+C) y pegalo en un mail a tu asesor.</p>
-  <textarea id="manual-copy-area" class="mono" readonly style="width:100%; min-height:160px; font-size:11.5px; padding:10px; border:1px solid var(--line); border-radius:8px; background:var(--surface); color:var(--ink); white-space:pre;"></textarea>
-</details>
-
 <div class="action-bar" id="action-bar">
   <div class="action-inner">
     <div class="status-text" id="status-text"><span class="status-dot"></span><span id="status-msg">Completá tus datos y las 7 preguntas para continuar</span></div>
@@ -545,17 +532,6 @@
     };
   }
 
-  function fillManualCopyArea(payload) {
-    var lines = ["Nombre\t" + payload.nombre, "Email\t" + payload.email, "DNI/CUIT\t" + payload.dni, ""];
-    payload.respuestas.forEach(function (r) { lines.push(r.pregunta + "\t" + r.respuesta); });
-    lines.push("");
-    lines.push("Puntaje total\t" + payload.score);
-    lines.push("Perfil de riesgo\t" + payload.perfil);
-    document.getElementById("manual-copy-area").value = lines.join("\n");
-    document.getElementById("manual-copy-details").style.display = "";
-    document.getElementById("manual-copy-details").open = true;
-  }
-
   var inClaudeViewer = !!(window.claude && typeof window.claude.use === "function");
 
   async function saveToSheets(payload) {
@@ -624,20 +600,15 @@
     btn.disabled = true;
     btn.textContent = "Enviando…";
     var payload = buildPayload();
-    var result = await saveToSheets(payload);
+    // El guardado en Drive/Sheets se intenta en segundo plano — el cliente
+    // ve su resultado igual, sin pantallas técnicas de respaldo. Cualquier
+    // falla de guardado queda solo logueada del lado del servidor.
+    await saveToSheets(payload);
     btn.disabled = false;
     btn.innerHTML = '<svg viewBox="0 0 20 20" fill="none"><path d="M10 3v10m0 0l-4-4m4 4l4-4M4 15.5h12" stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg> Enviar';
-    if (result.ok) {
-      showResult(payload.perfil, payload.score);
-      return;
-    }
-    fillManualCopyArea(payload);
-    showToast("No se pudo enviar automáticamente — copiá el bloque de abajo y mandalo a tu asesor.");
+    showResult(payload.perfil, payload.score);
   }
 
   document.getElementById("submit-btn").addEventListener("click", submitForm);
 })();
 </script>
-
-</body>
-</html>
