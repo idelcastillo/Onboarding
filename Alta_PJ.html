@@ -1,11 +1,4 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Alta de Legajo — Persona Jurídica</title>
-</head>
-<body>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
 
@@ -49,6 +42,7 @@
       --focus: #7FA9D6;
       --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px -12px rgba(0,0,0,0.5);
     }
+    :root:not([data-theme="light"]) input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); }
   }
   :root[data-theme="dark"] {
     --paper: #0D141C;
@@ -188,6 +182,18 @@
     width: 100%;
   }
   .group-sub { color: var(--muted); font-size: 13px; margin: -8px 0 14px; }
+  .field-subtitle {
+    grid-column: 1 / -1;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--navy);
+    margin-top: 6px;
+    padding-top: 16px;
+    border-top: 1px solid var(--line-soft);
+  }
+  .field-grid > .field-subtitle:first-child { padding-top: 0; border-top: none; margin-top: 0; }
 
   .field-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px 16px; }
   .field-grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
@@ -203,7 +209,7 @@
   label .opt { color: var(--faint); font-weight: 400; margin-left: 4px; }
   .field-help { font-size: 12px; color: var(--faint); margin-top: -2px; }
 
-  input[type="text"], input[type="email"], input[type="tel"], select, textarea {
+  input[type="text"], input[type="email"], input[type="tel"], input[type="date"], select, textarea {
     font: inherit;
     font-size: 14px;
     color: var(--ink);
@@ -223,6 +229,9 @@
   }
   input.invalid, select.invalid { border-color: var(--danger); }
   input:disabled, select:disabled { background: var(--line-soft); color: var(--faint); cursor: not-allowed; }
+  input[type="date"]::-webkit-calendar-picker-indicator { cursor: pointer; opacity: 0.65; }
+  input[type="date"]::-webkit-calendar-picker-indicator:hover { opacity: 1; }
+  :root[data-theme="dark"] input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); }
 
   select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none'%3E%3Cpath d='M5.5 8L10 12.5L14.5 8' stroke='%235B6B7F' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; padding-right: 32px; }
 
@@ -581,15 +590,16 @@
     { key: "CP", label: "CP", required: true, mono: true },
     { key: "Email", label: "Email", required: true, type: "email" },
     { key: "Teléfono", label: "Teléfono", required: true, mono: true },
-    { key: "Fecha de Constitución", label: "Fecha de constitución", required: true, placeholder: "15/03/2010" },
+    { key: "Fecha de Constitución", label: "Fecha de constitución", required: true, type: "date" },
     { key: "CUIT", label: "CUIT", required: true, mono: true },
     { key: "Actividad", label: "Actividad", required: true, span: 2 },
     { key: "Condición IVA", label: "Condición frente al IVA", required: true, type: "select", options: opts(IVA_SOCIEDAD_OPTS) },
     { key: "Condición Ganancias", label: "Condición frente a Ganancias", required: true, type: "select", options: opts(GAN_SOCIEDAD_OPTS) },
-    { key: "Inscripción en el Registro Público - Fecha", label: "Inscripción Reg. Público — fecha", required: true },
-    { key: "Inscripción en el Registro Público - Lugar", label: "Inscripción Reg. Público — lugar", required: true },
-    { key: "Inscripción en el Registro Público - Tipo (Libro/Tomo/Folio)", label: "Inscripción Reg. Público — tipo", required: true, type: "select", options: opts(INSC_TIPO_OPTS) },
-    { key: "Inscripción en el Registro Público - Número", label: "Inscripción Reg. Público — número", required: true, mono: true },
+    { subtitle: "Inscripción en el Registro Público" },
+    { key: "Inscripción en el Registro Público - Fecha", label: "Fecha", required: true, type: "date" },
+    { key: "Inscripción en el Registro Público - Tipo (Libro/Tomo/Folio)", label: "Tipo", required: true, type: "select", options: opts(INSC_TIPO_OPTS) },
+    { key: "Inscripción en el Registro Público - Lugar", label: "Lugar", required: true },
+    { key: "Inscripción en el Registro Público - Número", label: "Número", required: true, mono: true },
     { key: "Patrimonio Neto Aproximado", label: "Patrimonio neto aproximado $", required: false, mono: true, placeholder: "USD 2.500.000" },
     { key: "Facturación Mensual Aproximada", label: "Facturación mensual aproximada $", required: false, mono: true, placeholder: "USD 150.000" },
     { key: "Banco 1", label: "Banco", required: false },
@@ -644,7 +654,7 @@
         { key: "Nombre y Apellido", label: "Nombre y apellido", required: true, span: 2 },
         { key: "DNI / CUIT", label: "DNI / CUIT", required: true, mono: true },
         { key: "Domicilio Real", label: "Domicilio real", required: true, span: 2 },
-        { key: "Fecha de Nacimiento", label: "Fecha de nacimiento", required: true, placeholder: "15/03/1985" },
+        { key: "Fecha de Nacimiento", label: "Fecha de nacimiento", required: true, type: "date" },
         { key: "Lugar de Nacimiento", label: "Lugar de nacimiento", required: true, placeholder: "Rosario, Santa Fe" },
         { key: "Nacionalidad", label: "Nacionalidad", required: true, placeholder: "Argentina" },
         { key: "Profesión", label: "Profesión", required: false },
@@ -669,7 +679,7 @@
         { key: "N° de Pasaporte", label: "Número de Pasaporte", required: false, mono: true },
         { key: "CUIT/CUIL", label: "CUIT/CUIL", required: true, mono: true },
         { key: "Lugar de Nacimiento", label: "Lugar de nacimiento", required: true, placeholder: "Rosario, Santa Fe" },
-        { key: "Fecha de Nacimiento", label: "Fecha de nacimiento", required: true, placeholder: "15/03/1985" },
+        { key: "Fecha de Nacimiento", label: "Fecha de nacimiento", required: true, type: "date" },
         { key: "Nacionalidad", label: "Nacionalidad", required: true, placeholder: "Argentina" },
         { key: "Sexo", label: "Sexo", required: true, type: "select", options: opts(SEXO_OPTS) },
         { key: "Estado Civil", label: "Estado civil", required: true, type: "select", options: opts(CIVIL_OPTS) }
@@ -725,7 +735,7 @@
     { key: "Cónyuge - DNI/Pasaporte", label: "DNI/Pasaporte", mono: true },
     { key: "Cónyuge - CUIT/CUIL", label: "CUIT/CUIL", mono: true },
     { key: "Cónyuge - Lugar de Nacimiento", label: "Lugar de nacimiento" },
-    { key: "Cónyuge - Fecha de Nacimiento", label: "Fecha de nacimiento" },
+    { key: "Cónyuge - Fecha de Nacimiento", label: "Fecha de nacimiento", type: "date" },
     { key: "Cónyuge - Condición IVA", label: "Condición IVA", type: "select", options: opts(IVA_OPTS) },
     { key: "Cónyuge - Condición Ganancias", label: "Condición Ganancias", type: "select", options: opts(GAN_OPTS) }
   ];
@@ -810,8 +820,8 @@
       input = el("textarea", null);
     } else {
       input = el("input", f.mono ? "mono" : null);
-      input.type = f.type === "email" ? "email" : "text";
-      if (f.placeholder) input.placeholder = f.placeholder;
+      input.type = f.type === "email" ? "email" : (f.type === "date" ? "date" : "text");
+      if (f.placeholder && f.type !== "date") input.placeholder = f.placeholder;
       if (f.list) {
         var listId = id + "__list";
         input.setAttribute("list", listId);
@@ -913,7 +923,13 @@
   }
 
   function sanitizeCell(v) {
-    return (v || "").replace(/[\t\r\n]+/g, " ").trim();
+    v = (v || "").replace(/[\t\r\n]+/g, " ").trim();
+    // Los <input type="date"> entregan "AAAA-MM-DD" (formato del navegador);
+    // se convierte a "DD/MM/AAAA" para mantener el mismo formato que usan
+    // la planilla y el PDF en el resto del legajo.
+    var isoDate = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v);
+    if (isoDate) return isoDate[3] + "/" + isoDate[2] + "/" + isoDate[1];
+    return v;
   }
 
   function displayValue(key, v) {
@@ -984,7 +1000,10 @@
     var fs = el("fieldset", "group");
     fs.appendChild(el("legend", null, "Datos identificatorios de la sociedad"));
     var grid = el("div", "field-grid");
-    SOCIEDAD_FIELDS.forEach(function (f) { grid.appendChild(renderField("soc", f)); });
+    SOCIEDAD_FIELDS.forEach(function (f) {
+      if (f.subtitle) { grid.appendChild(el("div", "field-subtitle", f.subtitle)); return; }
+      grid.appendChild(renderField("soc", f));
+    });
     fs.appendChild(grid);
     card.appendChild(fs);
 
@@ -1675,6 +1694,7 @@
     var sg = el("div", "review-group");
     var sdl = el("dl", "review-list");
     SOCIEDAD_FIELDS.forEach(function (f) {
+      if (f.subtitle) return;
       var v = getSociedadValue(f.key);
       if (!v) return;
       sdl.appendChild(el("dt", null, f.label));
@@ -1826,6 +1846,3 @@
   addRepresentante();
 })();
 </script>
-
-</body>
-</html>
