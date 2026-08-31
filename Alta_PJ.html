@@ -1,11 +1,4 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Alta de Legajo — Persona Jurídica</title>
-</head>
-<body>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
 
@@ -352,12 +345,12 @@
   .modal-overlay {
     position: fixed; inset: 0; background: rgba(9,16,24,0.5);
     display: flex; align-items: center; justify-content: center;
-    padding: 24px; z-index: 40;
+    padding: 24px; z-index: 40; overflow-y: auto;
   }
   .modal-card {
     background: var(--surface); border-radius: 16px; box-shadow: var(--shadow);
     max-width: 640px; width: 100%; max-height: min(760px, 88vh);
-    display: flex; flex-direction: column; overflow: hidden;
+    display: flex; flex-direction: column; overflow: hidden; margin: auto;
   }
   .modal-head {
     display: flex; align-items: center; justify-content: space-between; gap: 12px;
@@ -517,7 +510,9 @@
     "Condición IVA", "Condición Ganancias",
     "Inscripción en el Registro Público - Fecha",
     "Inscripción en el Registro Público - Lugar",
-    "Inscripción en el Registro Público - Tipo (Libro/Tomo/Folio)",
+    "Inscripción en el Registro Público - Libro",
+    "Inscripción en el Registro Público - Tomo",
+    "Inscripción en el Registro Público - Folio",
     "Inscripción en el Registro Público - Número",
     "Patrimonio Neto Aproximado", "Facturación Mensual Aproximada",
     "Banco 1", "Titular Banco 1", "Tipo de Cuenta Banco 1", "CBU Banco 1",
@@ -564,7 +559,6 @@
   var DOC_OPTS = ["DNI", "LE", "LC", "DNI Extranjero", "Pasaporte", "Carné Internacional", "Certificado Provisorio"];
   var SIT_LABORAL_SUG = ["Relación de dependencia", "Autónomo / Independiente", "Empresario / Dueño de empresa", "Jubilado / Pensionado", "Desempleado", "Estudiante"];
   var PROVINCIAS = ["Buenos Aires", "Ciudad Autónoma de Buenos Aires", "Catamarca", "Chaco", "Chubut", "Córdoba", "Corrientes", "Entre Ríos", "Formosa", "Jujuy", "La Pampa", "La Rioja", "Mendoza", "Misiones", "Neuquén", "Río Negro", "Salta", "San Juan", "San Luis", "Santa Cruz", "Santa Fe", "Santiago del Estero", "Tierra del Fuego", "Tucumán"];
-  var INSC_TIPO_OPTS = ["Libro", "Tomo", "Folio"];
 
   function opts(list) { return list.map(function (o) { return { value: o, label: o }; }); }
 
@@ -604,9 +598,11 @@
     { key: "Condición Ganancias", label: "Condición frente a Ganancias", required: true, type: "select", options: opts(GAN_SOCIEDAD_OPTS) },
     { subtitle: "Inscripción en el Registro Público" },
     { key: "Inscripción en el Registro Público - Fecha", label: "Fecha", required: true, type: "date" },
-    { key: "Inscripción en el Registro Público - Tipo (Libro/Tomo/Folio)", label: "Tipo", required: true, type: "select", options: opts(INSC_TIPO_OPTS) },
     { key: "Inscripción en el Registro Público - Lugar", label: "Lugar", required: true },
-    { key: "Inscripción en el Registro Público - Número", label: "Número", required: true, mono: true },
+    { key: "Inscripción en el Registro Público - Libro", label: "Libro", required: true, mono: true },
+    { key: "Inscripción en el Registro Público - Tomo", label: "Tomo", required: true, mono: true },
+    { key: "Inscripción en el Registro Público - Folio", label: "Folio", required: true, mono: true },
+    { key: "Inscripción en el Registro Público - Número", label: "Nº", required: true, mono: true },
     { key: "Patrimonio Neto Aproximado", label: "Patrimonio neto aproximado $", required: false, mono: true, placeholder: "USD 2.500.000" },
     { key: "Facturación Mensual Aproximada", label: "Facturación mensual aproximada $", required: false, mono: true, placeholder: "USD 150.000" },
     { key: "Banco 1", label: "Banco", required: false },
@@ -1853,6 +1849,3 @@
   addRepresentante();
 })();
 </script>
-
-</body>
-</html>
