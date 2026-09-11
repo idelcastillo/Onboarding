@@ -243,6 +243,50 @@
   input[type="file"]::file-selector-button:hover { border-color: var(--navy); background: var(--navy-soft); }
   .file-status { font-size: 12px; color: var(--success); margin-top: 2px; word-break: break-word; }
   .file-status.has-files::before { content: "✓ "; }
+  .selfie-slot-hidden { display: none; }
+
+  /* ---------- Paso dedicado: selfie con DNI (al apretar "Enviar") ---------- */
+  .selfie-step-progress {
+    font-size: 11.5px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase;
+    color: var(--navy); background: var(--navy-soft); padding: 4px 10px; border-radius: 999px;
+    display: inline-flex; width: fit-content; margin-bottom: 12px;
+  }
+  .selfie-step-intro { font-size: 13.5px; color: var(--muted); margin: 0 0 16px; }
+  .capture-zone {
+    border: 1.5px dashed var(--line); border-radius: 14px; padding: 22px 18px;
+    display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center;
+    background: var(--paper); transition: border-color 0.12s ease, background 0.12s ease;
+  }
+  .capture-zone.has-photo { border-style: solid; border-color: var(--success); background: var(--success-soft); padding: 14px; }
+  .capture-icon {
+    width: 46px; height: 46px; border-radius: 50%; background: var(--navy-soft);
+    display: flex; align-items: center; justify-content: center; flex: none;
+  }
+  .capture-icon svg { width: 22px; height: 22px; color: var(--navy); }
+  .capture-label { font-size: 13.5px; font-weight: 600; color: var(--ink); }
+  .capture-sub { font-size: 12px; color: var(--muted); max-width: 34ch; }
+  .preview-wrap { position: relative; width: 100%; max-width: 240px; }
+  .preview-wrap img { width: 100%; display: block; border-radius: 10px; border: 1px solid var(--line); box-shadow: var(--shadow); }
+  .preview-meta { font-size: 12px; color: var(--success); font-weight: 500; }
+  .preview-meta::before { content: "✓ "; }
+  .file-selector-btn {
+    font: inherit; font-size: 13.5px; font-weight: 600; color: var(--navy); background: var(--surface);
+    border: 1.5px solid var(--line); border-radius: 9px; padding: 9px 16px; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 7px; transition: border-color 0.12s ease, background 0.12s ease;
+  }
+  .file-selector-btn:hover { border-color: var(--navy); background: var(--navy-soft); }
+  .file-selector-btn svg { width: 15px; height: 15px; }
+  .ejemplo-toggle {
+    background: none; border: none; color: var(--navy); font: inherit; font-size: 12.5px; font-weight: 600;
+    cursor: pointer; padding: 10px 0 0; text-decoration: underline; text-underline-offset: 2px;
+  }
+  .ejemplo-wrap { display: flex; flex-direction: column; align-items: center; gap: 8px; margin-top: 14px; }
+  .ejemplo-caption { font-size: 12.5px; font-weight: 600; text-align: center; }
+  .ejemplo-caption.ok { color: var(--success); }
+  .ejemplo-caption.bad { color: var(--danger); }
+  .ejemplo-divider { height: 1px; background: var(--line); margin: 16px 0 12px; }
+  .ejemplo-bad-row { display: flex; gap: 20px; justify-content: center; flex-wrap: wrap; }
+  .ejemplo-bad-item { display: flex; flex-direction: column; align-items: center; gap: 6px; max-width: 120px; opacity: 0.85; }
 
   /* toggle switch for cónyuge */
   .switch-row { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
@@ -479,6 +523,86 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="selfie-step-overlay" style="display:none;">
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="selfie-step-title">
+    <div class="modal-head">
+      <div>
+        <span class="selfie-step-progress" id="selfie-step-progress"></span>
+        <h2 id="selfie-step-title">Selfie con tu DNI</h2>
+        <p id="selfie-step-subtitle">Antes de enviar, te proponemos sacarla ahora — es opcional, si no podés en este momento la pedimos después.</p>
+      </div>
+      <button class="modal-close" id="selfie-step-close" type="button" aria-label="Saltear y continuar">✕</button>
+    </div>
+    <div class="modal-body">
+      <p class="selfie-step-intro">Sostené tu DNI (frente) a la altura de tu cara, bien iluminado, y sacate la foto con la cámara frontal del celular mostrando <strong>tu cara y el DNI juntos</strong> en la misma toma.</p>
+
+      <div class="field" id="selfie-step-foto-field">
+        <div class="capture-zone" id="selfie-step-capture-zone">
+          <div class="capture-icon" id="selfie-step-capture-icon">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M4 8a2 2 0 0 1 2-2h1.2l.9-1.5A2 2 0 0 1 9.8 3.5h4.4a2 2 0 0 1 1.7 1L16.8 6H18a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.2" stroke="currentColor" stroke-width="1.5"/></svg>
+          </div>
+          <div class="capture-label" id="selfie-step-capture-label">Sacate la foto o subila desde tu galería</div>
+          <div class="capture-sub">Se abre la cámara frontal de tu celular. También podés elegir una foto ya sacada.</div>
+          <button type="button" class="file-selector-btn" id="selfie-step-selector-btn">
+            <svg viewBox="0 0 20 20" fill="none"><path d="M4 8a2 2 0 0 1 2-2h1l.8-1.3a1.5 1.5 0 0 1 1.3-.7h1.8a1.5 1.5 0 0 1 1.3.7L13 6h1a2 2 0 0 1 2 2v6.5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><circle cx="10" cy="10.8" r="2.4" stroke="currentColor" stroke-width="1.4"/></svg>
+            Abrir cámara
+          </button>
+        </div>
+      </div>
+
+      <button type="button" class="ejemplo-toggle" id="selfie-step-ejemplo-toggle">Ver un ejemplo</button>
+      <div id="selfie-step-ejemplo" style="display:none;">
+        <div class="ejemplo-wrap">
+          <svg viewBox="0 0 220 170" width="190" height="147" role="img" aria-label="Ejemplo: cara y DNI visibles juntos en la misma foto">
+            <path d="M45 168 Q45 108 96 100 Q147 108 147 168 Z" fill="var(--navy-soft)" stroke="var(--navy)" stroke-width="1.5"/>
+            <circle cx="96" cy="56" r="27" fill="var(--navy-soft)" stroke="var(--navy)" stroke-width="1.5"/>
+            <g transform="rotate(-10 158 118)">
+              <rect x="120" y="92" width="76" height="50" rx="7" fill="var(--surface)" stroke="var(--navy)" stroke-width="1.6"/>
+              <rect x="127" y="100" width="20" height="24" rx="2.5" fill="var(--line)" stroke="var(--navy)" stroke-width="1.1"/>
+              <rect x="153" y="101" width="34" height="4.5" rx="2.2" fill="var(--line)"/>
+              <rect x="153" y="110" width="28" height="4.5" rx="2.2" fill="var(--line)"/>
+              <rect x="153" y="119" width="22" height="4.5" rx="2.2" fill="var(--line)"/>
+              <rect x="127" y="128" width="60" height="4.5" rx="2.2" fill="var(--line)"/>
+            </g>
+            <circle cx="192" cy="146" r="16" fill="var(--success)"/>
+            <path d="M184 146l5.5 5.5L200.5 140" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          </svg>
+          <div class="ejemplo-caption ok">✓ Así se ve bien — cara y DNI juntos, bien iluminados</div>
+        </div>
+        <div class="ejemplo-divider"></div>
+        <div class="ejemplo-bad-row">
+          <div class="ejemplo-bad-item">
+            <svg viewBox="0 0 100 100" width="64" height="64" role="img" aria-label="Ejemplo incorrecto: falta el DNI en la foto">
+              <path d="M15 98 Q15 56 50 50 Q85 56 85 98 Z" fill="var(--line-soft)" stroke="var(--faint)" stroke-width="1.5"/>
+              <circle cx="50" cy="30" r="20" fill="var(--line-soft)" stroke="var(--faint)" stroke-width="1.5"/>
+              <circle cx="80" cy="80" r="15" fill="var(--danger)"/>
+              <path d="M74 74l12 12M86 74l-12 12" stroke="white" stroke-width="3" stroke-linecap="round"/>
+            </svg>
+            <div class="ejemplo-caption bad">✗ Sin el DNI en la foto</div>
+          </div>
+          <div class="ejemplo-bad-item">
+            <svg viewBox="0 0 100 100" width="64" height="64" role="img" aria-label="Ejemplo incorrecto: DNI tapado o ilegible">
+              <path d="M8 98 Q8 56 42 50 Q76 56 76 98 Z" fill="var(--line-soft)" stroke="var(--faint)" stroke-width="1.5"/>
+              <circle cx="42" cy="30" r="18" fill="var(--line-soft)" stroke="var(--faint)" stroke-width="1.5"/>
+              <g transform="rotate(-8 68 66)">
+                <rect x="52" y="52" width="36" height="24" rx="4" fill="var(--surface)" stroke="var(--faint)" stroke-width="1.3"/>
+                <path d="M54 54l32 20M86 54l-32 20M54 64h32M70 52v24" stroke="var(--faint)" stroke-width="1" opacity="0.6"/>
+              </g>
+              <circle cx="82" cy="82" r="15" fill="var(--danger)"/>
+              <path d="M76 76l12 12M88 76l-12 12" stroke="white" stroke-width="3" stroke-linecap="round"/>
+            </svg>
+            <div class="ejemplo-caption bad">✗ DNI tapado o ilegible</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="secondary" id="selfie-step-skip" type="button">Saltear por ahora</button>
+      <button class="primary" id="selfie-step-next" type="button">Continuar</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -501,6 +625,11 @@
   // al terminar de enviar este formulario. Si cambia el nombre de archivo
   // o el repo en GitHub Pages, actualizar solo este valor.
   var PERFIL_RIESGO_URL = "https://idelcastillo.github.io/Onboarding/Test_Perfil_Inversor.html";
+
+  // Link al proceso standalone de "Selfie con tu DNI" (para el titular que no
+  // la subió durante el alta). Si cambia el nombre de archivo o el repo en
+  // GitHub Pages, actualizar solo este valor.
+  var SELFIE_DNI_URL = "https://idelcastillo.github.io/Onboarding/Subir_Selfie_DNI.html";
 
   // Orden EXACTO de columnas de la hoja "Titulares" del template real.
   var HEADERS = [
@@ -575,6 +704,14 @@
   ];
   var DOC_FIELD_SUJETO_OBLIGADO = { key: "doc_sujeto_obligado", label: "Constancia de inscripción como Sujeto Obligado" };
 
+  // La selfie con DNI NO se pide dentro de la sección de Documentación —
+  // se pide en un paso dedicado, propio, justo al apretar "Enviar" (ver
+  // startSelfieStep()/renderSelfieStepFor() más abajo). El input real sigue
+  // viviendo adentro de cada .titular-card (en un slot oculto, ver
+  // renderSelfieSlot()) para que buildDocumentosPayload()/buildReviewContent()
+  // lo levanten igual que al resto de los adjuntos.
+  var DOC_FIELD_SELFIE_DNI = { key: "doc_selfie_dni", label: "Selfie con tu DNI", accept: "image/*", capture: "user" };
+
   // Documentación del cónyuge — igual que la de identidad del titular pero
   // sin comprobante de domicilio (el cónyuge no carga un domicilio propio
   // en el formulario, comparte el del titular).
@@ -585,7 +722,7 @@
   ];
 
   var DOC_FIELD_LABELS = {};
-  DOC_FIELDS_IDENTIDAD.concat(DOC_FIELDS_PATRIMONIO).concat([DOC_FIELD_SUJETO_OBLIGADO]).concat(DOC_FIELDS_CONYUGE).forEach(function (f) {
+  DOC_FIELDS_IDENTIDAD.concat(DOC_FIELDS_PATRIMONIO).concat([DOC_FIELD_SUJETO_OBLIGADO, DOC_FIELD_SELFIE_DNI]).concat(DOC_FIELDS_CONYUGE).forEach(function (f) {
     DOC_FIELD_LABELS[f.key] = f.label;
   });
 
@@ -707,6 +844,13 @@
   var titularCount = 0;
   var container = document.getElementById("titulares-container");
 
+  // Estado del paso dedicado de "Selfie con tu DNI" (ver startSelfieStep()
+  // más abajo, cerca del submit). Se arma con las cards en el momento de
+  // apretar "Enviar" — no antes — para reflejar siempre el orden/cantidad
+  // de titulares actual.
+  var selfieStepQueue = [];
+  var selfieStepIndex = 0;
+
   function el(tag, cls, html) {
     var e = document.createElement(tag);
     if (cls) e.className = cls;
@@ -773,7 +917,8 @@
     input.type = "file";
     input.id = id;
     input.name = id;
-    input.accept = "image/*,.pdf,application/pdf";
+    input.accept = f.accept || "image/*,.pdf,application/pdf";
+    if (f.capture) input.capture = f.capture;
     if (f.multiple) input.multiple = true;
     input.dataset.docKey = f.key;
     wrap.appendChild(input);
@@ -1067,6 +1212,27 @@
       head.appendChild(rm);
     }
     card.appendChild(head);
+
+    // Input real de la selfie con DNI: vive adentro de la card (así
+    // buildDocumentosPayload()/buildReviewContent() lo levantan igual que
+    // al resto de la documentación) pero oculto — se pide desde el paso
+    // dedicado al apretar "Enviar" (ver startSelfieStep()), no acá.
+    var selfieSlot = renderFileField(idx, DOC_FIELD_SELFIE_DNI);
+    selfieSlot.classList.add("selfie-slot-hidden");
+    card.appendChild(selfieSlot);
+    var selfieInputEl = selfieSlot.querySelector('input[type="file"]');
+    selfieInputEl.addEventListener("change", function () {
+      // Solo actualiza el preview del paso dedicado si está abierto y
+      // mostrando justo esta card — si el input cambia por otro motivo
+      // (o el paso está cerrado), no hay nada más que hacer acá.
+      if (document.getElementById("selfie-step-overlay").style.display === "none") return;
+      if (selfieStepQueue[selfieStepIndex] !== card) return;
+      if (selfieInputEl.files && selfieInputEl.files.length) {
+        showSelfieStepPreview(selfieInputEl.files[0]);
+      } else {
+        resetSelfieStepZone();
+      }
+    });
 
     SECTIONS.forEach(function (section) {
       card.appendChild(renderSection(idx, section));
@@ -1475,7 +1641,17 @@
       var no = firstCard ? getCardValue(firstCard, "Nombres") : "";
       var nombreCompleto = [no, ap].filter(Boolean).join(" ");
       var email = firstCard ? getCardValue(firstCard, "E-Mail") : "";
-      showSentState(result, nombreCompleto, email);
+      // Un titular por entrada — cada uno tuvo su propia chance de sacarse
+      // la selfie en el paso dedicado (ver startSelfieStep()); acá se
+      // juntan los que la saltearon, para ofrecerles el link de respaldo.
+      var titularesFaltaSelfie = Array.prototype.slice.call(container.querySelectorAll(".titular-card")).map(function (card) {
+        var input = card.querySelector('input[type="file"][data-doc-key="doc_selfie_dni"]');
+        if (input && input.files && input.files.length) return null;
+        var capAp = getCardValue(card, "Apellido");
+        var capNo = getCardValue(card, "Nombres");
+        return { nombre: [capNo, capAp].filter(Boolean).join(" ") };
+      }).filter(Boolean);
+      showSentState(result, nombreCompleto, email, titularesFaltaSelfie);
       return;
     }
     closeReviewModal();
@@ -1491,7 +1667,7 @@
     showManualCopyFallback(msg);
   }
 
-  function showSentState(result, nombreCompleto, email) {
+  function showSentState(result, nombreCompleto, email, titularesFaltaSelfie) {
     document.getElementById("review-title").textContent = "¡Enviado!";
     document.getElementById("review-subtitle").textContent = "Tus datos se guardaron correctamente.";
     reviewContent.innerHTML = "";
@@ -1520,6 +1696,25 @@
       cta.appendChild(link);
       cta.appendChild(el("div", "next-step-note", "Este test es individual — es solo para " + (nombreCompleto || "el primer titular") + ". Si hay otro titular en la cuenta, tiene que completar el suyo por separado con el link independiente que te compartió tu asesor."));
       reviewContent.appendChild(cta);
+    }
+
+    if (SELFIE_DNI_URL && result && result.ssId && titularesFaltaSelfie && titularesFaltaSelfie.length) {
+      titularesFaltaSelfie.forEach(function (t) {
+        var ctaSelfie = el("div", "next-step-cta");
+        var ctaSelfieTitle = t.nombre ? ("Falta la selfie con el DNI de " + t.nombre) : "Falta la selfie con el DNI";
+        ctaSelfie.appendChild(el("div", "next-step-title", ctaSelfieTitle));
+        ctaSelfie.appendChild(el("div", "next-step-text", "Tu bróker pide una selfie mostrando el DNI para completar el legajo. Se puede sacar ahora mismo desde el celular."));
+        var paramsSelfie = new URLSearchParams();
+        paramsSelfie.set("ssId", result.ssId);
+        if (t.nombre) paramsSelfie.set("nombre", t.nombre);
+        var linkSelfie = el("a", "next-step-btn", "Subir selfie con DNI");
+        linkSelfie.href = SELFIE_DNI_URL + "?" + paramsSelfie.toString();
+        linkSelfie.target = "_blank";
+        linkSelfie.rel = "noopener";
+        ctaSelfie.appendChild(linkSelfie);
+        ctaSelfie.appendChild(el("div", "next-step-note", (t.nombre ? (t.nombre + " puede abrir este link") : "Se puede abrir este link") + " directamente desde el celular para sacarse la foto con la cámara."));
+        reviewContent.appendChild(ctaSelfie);
+      });
     }
 
     document.getElementById("review-back").style.display = "none";
@@ -1636,8 +1831,126 @@
   });
   document.getElementById("review-confirm").addEventListener("click", submitForm);
 
-  document.getElementById("submit-btn").addEventListener("click", function () {
+  // --- Paso dedicado: "Selfie con tu DNI" — se ofrece al apretar "Enviar",
+  // antes del resumen. Es opcional: recorre los titulares uno por uno y
+  // cada uno puede sacarse la foto ahí mismo o saltear y seguir. Si la
+  // saltea, después de enviar el alta le queda el link de respaldo (igual
+  // que ya pasaba antes) para completarla más tarde desde el celular. ---
+  var selfieStepOverlay = document.getElementById("selfie-step-overlay");
+  var selfieStepZone = document.getElementById("selfie-step-capture-zone");
+  var selfieStepIcon = document.getElementById("selfie-step-capture-icon");
+  var selfieStepLabel = document.getElementById("selfie-step-capture-label");
+  var selfieStepSelectorBtn = document.getElementById("selfie-step-selector-btn");
+  var selfieStepPreviewUrl = null;
+  var SELFIE_CAMERA_ICON_SVG = '<svg viewBox="0 0 20 20" fill="none"><path d="M4 8a2 2 0 0 1 2-2h1l.8-1.3a1.5 1.5 0 0 1 1.3-.7h1.8a1.5 1.5 0 0 1 1.3.7L13 6h1a2 2 0 0 1 2 2v6.5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><circle cx="10" cy="10.8" r="2.4" stroke="currentColor" stroke-width="1.4"/></svg> ';
+
+  function currentSelfieInput() {
+    var card = selfieStepQueue[selfieStepIndex];
+    return card ? card.querySelector('input[type="file"][data-doc-key="doc_selfie_dni"]') : null;
+  }
+
+  function resetSelfieStepZone() {
+    if (selfieStepPreviewUrl) { URL.revokeObjectURL(selfieStepPreviewUrl); selfieStepPreviewUrl = null; }
+    selfieStepZone.classList.remove("has-photo");
+    selfieStepIcon.style.display = "";
+    selfieStepLabel.textContent = "Sacate la foto o subila desde tu galería";
+    var existingPreview = selfieStepZone.querySelector(".preview-wrap");
+    if (existingPreview) existingPreview.remove();
+    var existingMeta = selfieStepZone.querySelector(".preview-meta");
+    if (existingMeta) existingMeta.remove();
+    selfieStepSelectorBtn.innerHTML = SELFIE_CAMERA_ICON_SVG + "Abrir cámara";
+  }
+
+  function showSelfieStepPreview(file) {
+    if (selfieStepPreviewUrl) URL.revokeObjectURL(selfieStepPreviewUrl);
+    selfieStepPreviewUrl = URL.createObjectURL(file);
+    selfieStepZone.classList.add("has-photo");
+    selfieStepIcon.style.display = "none";
+    selfieStepLabel.textContent = "";
+    var existingPreview = selfieStepZone.querySelector(".preview-wrap");
+    if (existingPreview) existingPreview.remove();
+    var existingMeta = selfieStepZone.querySelector(".preview-meta");
+    if (existingMeta) existingMeta.remove();
+
+    var previewWrap = el("div", "preview-wrap");
+    var img = document.createElement("img");
+    img.src = selfieStepPreviewUrl;
+    img.alt = "Selfie con DNI";
+    previewWrap.appendChild(img);
+    selfieStepZone.insertBefore(previewWrap, selfieStepSelectorBtn);
+
+    var meta = el("div", "preview-meta", "Foto lista — " + file.name);
+    selfieStepZone.insertBefore(meta, selfieStepSelectorBtn);
+
+    selfieStepSelectorBtn.innerHTML = SELFIE_CAMERA_ICON_SVG + "Sacar otra foto";
+  }
+
+  function renderSelfieStepFor(i) {
+    var card = selfieStepQueue[i];
+    var total = selfieStepQueue.length;
+    var ap = getCardValue(card, "Apellido");
+    var no = getCardValue(card, "Nombres");
+    var nombre = [no, ap].filter(Boolean).join(" ");
+    document.getElementById("selfie-step-progress").textContent = "Titular " + (i + 1) + " de " + total;
+    document.getElementById("selfie-step-title").textContent = nombre ? ("Selfie con el DNI de " + nombre) : "Selfie con tu DNI";
+    document.getElementById("selfie-step-ejemplo").style.display = "none";
+    document.getElementById("selfie-step-ejemplo-toggle").textContent = "Ver un ejemplo";
+
+    var input = currentSelfieInput();
+    if (input && input.files && input.files.length) {
+      showSelfieStepPreview(input.files[0]);
+    } else {
+      resetSelfieStepZone();
+    }
+  }
+
+  function startSelfieStep() {
+    selfieStepQueue = Array.prototype.slice.call(container.querySelectorAll(".titular-card"));
+    selfieStepIndex = 0;
+    if (!selfieStepQueue.length) { openReviewModal(); return; }
+    selfieStepOverlay.style.display = "flex";
+    renderSelfieStepFor(selfieStepIndex);
+  }
+
+  function finishSelfieStep() {
+    selfieStepOverlay.style.display = "none";
     openReviewModal();
+  }
+
+  function selfieStepAdvance() {
+    selfieStepIndex++;
+    if (selfieStepIndex >= selfieStepQueue.length) {
+      finishSelfieStep();
+    } else {
+      renderSelfieStepFor(selfieStepIndex);
+    }
+  }
+
+  selfieStepSelectorBtn.addEventListener("click", function () {
+    var input = currentSelfieInput();
+    if (input) input.click();
+  });
+  document.getElementById("selfie-step-next").addEventListener("click", selfieStepAdvance);
+  document.getElementById("selfie-step-skip").addEventListener("click", selfieStepAdvance);
+  document.getElementById("selfie-step-close").addEventListener("click", finishSelfieStep);
+  selfieStepOverlay.addEventListener("click", function (e) { if (e.target === selfieStepOverlay) finishSelfieStep(); });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && selfieStepOverlay.style.display !== "none") finishSelfieStep();
+  });
+  document.getElementById("selfie-step-ejemplo-toggle").addEventListener("click", function () {
+    var ej = document.getElementById("selfie-step-ejemplo");
+    var isOpen = ej.style.display !== "none";
+    ej.style.display = isOpen ? "none" : "";
+    this.textContent = isOpen ? "Ver un ejemplo" : "Ocultar ejemplo";
+  });
+
+  document.getElementById("submit-btn").addEventListener("click", function () {
+    if (getMissingCount() > 0 || container.querySelectorAll(".titular-card").length === 0) {
+      markInvalid();
+      showToast("Faltan campos requeridos — revisá lo marcado en rojo");
+      return;
+    }
+    startSelfieStep();
   });
 
   var cuentaSection = renderCuentaSection();
